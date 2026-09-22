@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src\Potok.SearchEngine\Potok.SearchEngine.csproj" />
+    <Project Path="src\Potok.SearchEngine.Core\Potok.SearchEngine.Core.csproj" />
+    <Project Path="src\Potok.SearchEngine.Infrastructure\Potok.SearchEngine.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests\Potok.SearchEngine.Tests\Potok.SearchEngine.Tests.csproj" />
+  </Folder>
+</Solution>

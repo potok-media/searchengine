@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <Version>3.0.0</Version>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Potok.SearchEngine</RootNamespace>
+        <AssemblyName>Potok.SearchEngine</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8"/>
+        <PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
+        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Potok.SearchEngine.Core\Potok.SearchEngine.Core.csproj" />
+      <ProjectReference Include="..\Potok.SearchEngine.Infrastructure\Potok.SearchEngine.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>
