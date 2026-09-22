@@ -20,6 +20,9 @@ public class Config
     [ConfigurationKeyName("cache")]
     public Cache Cache { get; set; } = new();
 
+    [ConfigurationKeyName("mediaresolver")]
+    public MediaResolverSettings MediaResolver { get; set; } = new();
+
     [ConfigurationKeyName("rutracker")]
     public RuTrackerSettings RuTracker { get; set; } = new();
 
