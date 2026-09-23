@@ -32,8 +32,13 @@ public static class SerilogSetup
 
     public static Serilog.ILogger CreateLogger()
     {
+        var minimum = Enum.TryParse<LogEventLevel>(
+            Environment.GetEnvironmentVariable("POTOK_LOG_LEVEL"), out var parsed)
+            ? parsed
+            : LogEventLevel.Information;
+
         return new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(minimum)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
