@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -160,6 +161,48 @@ public class AnimeLayerContractTests
 
         Assert.Empty(await tracker.SearchAsync("Атака титанов Attack on Titan"));
         Assert.Equal(3, handler.RequestUrls.Count);
+    }
+
+    [Fact]
+    public async Task Login_response_cookies_are_sent_back_as_plain_name_value_pairs()
+    {
+        var observedCookies = new ConcurrentQueue<string>();
+        var handler = new RoutingHttpMessageHandler((request, _) =>
+        {
+            var url = request.RequestUri!.ToString();
+            if (url.Contains("/auth/login/", StringComparison.Ordinal))
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.Found);
+                response.Headers.TryAddWithoutValidation("Set-Cookie",
+                    "al_session=abc123; path=/; expires=Wed, 23 Sep 2027 00:00:00 GMT; HttpOnly");
+                response.Headers.TryAddWithoutValidation("Set-Cookie", "al_uid=42; path=/; SameSite=Lax");
+                response.Headers.TryAddWithoutValidation("Set-Cookie",
+                    "al_stale=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/");
+                return Task.FromResult(response);
+            }
+            if (request.Headers.TryGetValues("Cookie", out var cookieValues))
+                observedCookies.Enqueue(string.Join(",", cookieValues));
+            if (url.Contains("/torrents/anime/?q=", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(TrackerTestClients.ReadFixture("AnimeLayer", "search-list.html")));
+            if (url.Contains("aaaaaaaaaaaaaaaaaaaaaaaa", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(Topic("0123456789ABCDEF0123456789ABCDEF01234567")));
+            if (url.Contains("bbbbbbbbbbbbbbbbbbbbbbbb", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(Topic("7CC6F866595149DE96DAD57F566AD1481F6837E3")));
+            throw new InvalidOperationException($"Unexpected AnimeLayer request: {url}");
+        });
+        var config = EnabledConfig();
+        config.AnimeLayer.Authorization.Login = "user";
+        config.AnimeLayer.Authorization.Password = "pass";
+        ITrackerSearch tracker = new AnimeLayerSearch(
+            Options.Create(config),
+            TrackerTestClients.CreateHttpClient(handler, config),
+            new FixtureCache());
+
+        var results = await tracker.SearchAsync("Атака титанов Attack on Titan");
+
+        Assert.Equal(2, results.Count);
+        Assert.NotEmpty(observedCookies);
+        Assert.All(observedCookies, cookie => Assert.Equal("al_session=abc123; al_uid=42", cookie));
     }
 
     [Fact]

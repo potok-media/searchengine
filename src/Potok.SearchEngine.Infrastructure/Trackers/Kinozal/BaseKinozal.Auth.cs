@@ -54,12 +54,26 @@ public partial class BaseKinozal
 
         if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
         {
-            var cookie = string.Join("; ", cookies);
+            var cookie = string.Join("; ", cookies.Select(SessionCookiePair).OfType<string>());
+            if (string.IsNullOrWhiteSpace(cookie))
+                return string.Empty;
             await CacheService.SetAsync(CookieKey, cookie, TimeSpan.FromDays(Config.Cache.AuthExpiry));
             return cookie;
         }
 
         return string.Empty;
+    }
+
+    /// <summary>
+    ///     Keeps only the name=value pair of a Set-Cookie header (attributes like path,
+    ///     expires or HttpOnly never belong in a Cookie header); returns null for empty
+    ///     or deleting (empty-value) cookies.
+    /// </summary>
+    private static string? SessionCookiePair(string setCookie)
+    {
+        var pair = setCookie.Split(';', 2)[0].Trim();
+        var separator = pair.IndexOf('=');
+        return separator > 0 && separator < pair.Length - 1 ? pair : null;
     }
 
     protected static bool IsChallengeResponse(string html) =>
