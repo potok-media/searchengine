@@ -27,6 +27,10 @@ builder.Host.UseSerilog(Log.Logger, dispose: true);
 // Tracker config (config.yml mounted as config.local.yml in Docker)
 builder.Configuration.AddYamlFile("config.local.yml", false, true);
 
+// User secrets — явно, для любого окружения: CreateBuilder добавляет их только в
+// Development, а локально хост запускается собранным бинарём (Production).
+builder.Configuration.AddUserSecrets(System.Reflection.Assembly.GetExecutingAssembly(), optional: true, reloadOnChange: true);
+
 
 // --- Глобальные настройки ---
 CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
