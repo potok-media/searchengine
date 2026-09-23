@@ -150,7 +150,7 @@ public partial class BaseNNMClub : BaseTrackerSearch
 
             torrent.Magnet = string.IsNullOrWhiteSpace(magnetRaw) ? null : magnet;
             torrent.InfoHash = explicitHashRaw;
-            if (!TryResolveIdentity(torrent, out var normalizedHash, out var identityErrorCode))
+            if (!TorrentIdentity.TryResolve(torrent, out var normalizedHash, out var identityErrorCode, out _))
             {
                 torrent.Magnet = null;
                 torrent.InfoHash = null;

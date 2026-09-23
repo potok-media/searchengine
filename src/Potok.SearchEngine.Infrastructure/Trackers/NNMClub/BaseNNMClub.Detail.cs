@@ -9,52 +9,13 @@ using Potok.SearchEngine.Infrastructure.Trackers.Toolkit;
 namespace Potok.SearchEngine.Infrastructure.Trackers.NNMClub;
 
 /// <summary>
-///     NNMClub detail-side helpers: magnet/explicit-hash identity resolution (mirrors the
-///     former TorrentIdentityResolver contract), explicit-hash extraction from the topic page,
+///     NNMClub detail-side helpers: explicit-hash extraction from the topic page,
 ///     safe-URL normalization with optional query stripping, and page classification probes.
+///     Magnet/explicit-hash identity resolution is the shared
+///     <see cref="TorrentIdentity"/> in Core.
 /// </summary>
 public partial class BaseNNMClub
 {
-    private static bool TryResolveIdentity(
-        TorrentDetails torrent,
-        out string? normalizedHash,
-        out string? errorCode)
-    {
-        normalizedHash = null;
-        errorCode = null;
-
-        if (string.IsNullOrWhiteSpace(torrent.Magnet))
-        {
-            errorCode = "missing_magnet";
-            return false;
-        }
-
-        var magnetHash = MagnetBuilder.HashFromMagnet(torrent.Magnet);
-        if (magnetHash is null)
-        {
-            errorCode = "invalid_magnet";
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(torrent.InfoHash))
-        {
-            var explicitHash = MagnetBuilder.NormalizeHash(torrent.InfoHash);
-            if (explicitHash is null)
-            {
-                errorCode = "invalid_hash";
-                return false;
-            }
-            if (!string.Equals(explicitHash, magnetHash, StringComparison.Ordinal))
-            {
-                errorCode = "hash_mismatch";
-                return false;
-            }
-        }
-
-        normalizedHash = magnetHash;
-        return true;
-    }
-
     private static string? ExtractExplicitHash(IDocument document)
     {
         var fromAttribute = document.QuerySelector("[data-hash]")?.GetAttribute("data-hash");

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Polly;
 using Polly.CircuitBreaker;
 using Potok.SearchEngine.Core.Enums;
+using Potok.SearchEngine.Core.Utils;
 using Serilog;
 
 namespace Potok.SearchEngine.Infrastructure.Search;
@@ -143,7 +144,7 @@ public sealed class TrackerIngestion : ITrackerIngestion
                 continue;
             }
 
-            if (!TorrentIdentityResolver.TryResolve(
+            if (!TorrentIdentity.TryResolve(
                     result,
                     out var normalizedHash,
                     out var errorCode,

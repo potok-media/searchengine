@@ -169,7 +169,7 @@ public partial class BaseAnimeLayer
             ApplyNormalizedDetails(torrent, facts, ref observed);
             torrent.Magnet = NullIfEmpty(safeMagnet);
             torrent.InfoHash = NullIfEmpty(explicitHash);
-            if (!TryResolveIdentity(torrent, out var normalizedHash, out var identityErrorCode))
+            if (!TorrentIdentity.TryResolve(torrent, out var normalizedHash, out var identityErrorCode, out _))
             {
                 torrent.Magnet = null;
                 torrent.InfoHash = null;

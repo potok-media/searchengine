@@ -1,8 +1,12 @@
-using Potok.SearchEngine.Core.Utils;
+namespace Potok.SearchEngine.Core.Utils;
 
-namespace Potok.SearchEngine.Infrastructure.Search;
-
-internal static class TorrentIdentityResolver
+/// <summary>
+///     Canonical torrent identity resolution: extracts and normalizes the info-hash
+///     from the magnet (via <see cref="MagnetBuilder"/>) and validates it against an
+///     explicit hash when one is present. Error codes: missing_magnet, invalid_magnet,
+///     invalid_hash, hash_mismatch.
+/// </summary>
+public static class TorrentIdentity
 {
     public static bool TryResolve(
         TorrentDetails item,

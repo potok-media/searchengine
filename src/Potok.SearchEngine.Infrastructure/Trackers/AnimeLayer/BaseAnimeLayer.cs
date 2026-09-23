@@ -154,48 +154,5 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
                string.Equals(text, "anime", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    ///     Validates magnet ↔ explicit info-hash identity and returns the normalized
-    ///     (lowercase hex) hash. Error codes mirror the ingestion resolver vocabulary.
-    /// </summary>
-    private static bool TryResolveIdentity(
-        TorrentDetails torrent,
-        out string normalizedHash,
-        out string errorCode)
-    {
-        normalizedHash = string.Empty;
-        if (string.IsNullOrWhiteSpace(torrent.Magnet))
-        {
-            errorCode = "missing_magnet";
-            return false;
-        }
-
-        var magnetHash = MagnetBuilder.HashFromMagnet(torrent.Magnet);
-        if (magnetHash is null)
-        {
-            errorCode = "invalid_magnet";
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(torrent.InfoHash))
-        {
-            var explicitHash = MagnetBuilder.NormalizeHash(torrent.InfoHash);
-            if (explicitHash is null)
-            {
-                errorCode = "invalid_hash";
-                return false;
-            }
-            if (!string.Equals(explicitHash, magnetHash, StringComparison.Ordinal))
-            {
-                errorCode = "hash_mismatch";
-                return false;
-            }
-        }
-
-        normalizedHash = magnetHash;
-        errorCode = string.Empty;
-        return true;
-    }
-
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 }
