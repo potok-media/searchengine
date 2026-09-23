@@ -17,9 +17,7 @@ public partial class BaseKinozal
     /// </summary>
     protected async Task<string> Get(string url, Encoding? encoding, CancellationToken ct)
     {
-        var hasCookie = CacheService.TryGetValue(CookieKey, out string? cookie) &&
-                        !string.IsNullOrWhiteSpace(cookie);
-        if (!hasCookie)
+        if (!_sessionCookies.TryGet(out string? cookie))
             cookie = await Authorize(ct: ct);
 
         var html = await HttpService.GetStringAsync(url, cookie, url, encoding, true, ct);
@@ -54,26 +52,14 @@ public partial class BaseKinozal
 
         if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
         {
-            var cookie = string.Join("; ", cookies.Select(SessionCookiePair).OfType<string>());
+            var cookie = string.Join("; ", cookies.Select(SessionCookies.Pair).OfType<string>());
             if (string.IsNullOrWhiteSpace(cookie))
                 return string.Empty;
-            await CacheService.SetAsync(CookieKey, cookie, TimeSpan.FromDays(Config.Cache.AuthExpiry));
+            await _sessionCookies.StoreAsync(cookie);
             return cookie;
         }
 
         return string.Empty;
-    }
-
-    /// <summary>
-    ///     Keeps only the name=value pair of a Set-Cookie header (attributes like path,
-    ///     expires or HttpOnly never belong in a Cookie header); returns null for empty
-    ///     or deleting (empty-value) cookies.
-    /// </summary>
-    private static string? SessionCookiePair(string setCookie)
-    {
-        var pair = setCookie.Split(';', 2)[0].Trim();
-        var separator = pair.IndexOf('=');
-        return separator > 0 && separator < pair.Length - 1 ? pair : null;
     }
 
     protected static bool IsChallengeResponse(string html) =>

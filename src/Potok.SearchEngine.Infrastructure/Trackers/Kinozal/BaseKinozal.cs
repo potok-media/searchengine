@@ -17,10 +17,16 @@ public partial class BaseKinozal : BaseTrackerSearch
     private const string CookieKey = "kinozal:cookie";
     private const string ParserVersion = "kinozal/2026-09-22";
     private readonly HtmlParser _parser = new();
+    private readonly SessionCookieStore _sessionCookies;
 
     protected BaseKinozal(IOptions<Config> config, TrackerHttpClient httpService, ICacheService cacheService)
         : base(config, httpService, cacheService)
     {
+        _sessionCookies = new SessionCookieStore(
+            cacheService,
+            Config.Cache.Enable,
+            TimeSpan.FromDays(Config.Cache.AuthExpiry),
+            CookieKey);
     }
 
     public override TrackerType Tracker => TrackerType.Kinozal;

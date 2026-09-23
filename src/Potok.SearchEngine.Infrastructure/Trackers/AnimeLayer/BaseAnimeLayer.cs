@@ -20,10 +20,16 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
     protected const string CookieKey = "animelayer:cookies";
     private const string ParserVersion = "animelayer/2026-09-22";
     private readonly HtmlParser _parser = new();
+    private readonly SessionCookieStore _sessionCookies;
 
     protected BaseAnimeLayer(IOptions<Config> config, TrackerHttpClient httpService, ICacheService cacheService)
         : base(config, httpService, cacheService)
     {
+        _sessionCookies = new SessionCookieStore(
+            cacheService,
+            Config.Cache.Enable,
+            TimeSpan.FromDays(Config.Cache.AuthExpiry),
+            CookieKey);
     }
 
     public override TrackerType Tracker => TrackerType.AnimeLayer;
@@ -61,7 +67,7 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
     /// </summary>
     protected async Task<string> Get(string url, string? referer = null, CancellationToken ct = default)
     {
-        CacheService.TryGetValue(CookieKey, out string? cookie);
+        _sessionCookies.TryGet(out string? cookie);
         if (string.IsNullOrWhiteSpace(cookie) && HasConfiguredCredentials())
             cookie = await Authorize(ct: ct);
 
@@ -77,7 +83,7 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
 
     private async Task<string> Authorize(bool reAuth = false, CancellationToken ct = default)
     {
-        if (!reAuth && CacheService.TryGetValue(CookieKey, out string? cachedCookie))
+        if (!reAuth && _sessionCookies.TryGet(out string? cachedCookie))
             return cachedCookie!;
 
         var login = Config.AnimeLayer.Authorization.Login;
@@ -96,10 +102,10 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
 
         if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
         {
-            var cookie = string.Join("; ", cookies.Select(SessionCookiePair).OfType<string>());
+            var cookie = string.Join("; ", cookies.Select(SessionCookies.Pair).OfType<string>());
             if (!string.IsNullOrWhiteSpace(cookie))
             {
-                await CacheService.SetAsync(CookieKey, cookie, TimeSpan.FromDays(Config.Cache.AuthExpiry));
+                await _sessionCookies.StoreAsync(cookie);
                 return cookie;
             }
         }
@@ -126,18 +132,6 @@ public partial class BaseAnimeLayer : BaseTrackerSearch
             return true;
         var text = TrackerText.NormalizeText(document.Body?.TextContent ?? string.Empty);
         return text.Contains("необходимо зарегистрироваться или войти", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    ///     Keeps only the name=value pair of a Set-Cookie header (attributes like path,
-    ///     expires or HttpOnly never belong in a Cookie header); returns null for empty
-    ///     or deleting (empty-value) cookies.
-    /// </summary>
-    private static string? SessionCookiePair(string setCookie)
-    {
-        var pair = setCookie.Split(';', 2)[0].Trim();
-        var separator = pair.IndexOf('=');
-        return separator > 0 && separator < pair.Length - 1 ? pair : null;
     }
 
     private bool HasConfiguredCredentials() =>

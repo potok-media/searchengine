@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text;
 using System.Web;
 using AngleSharp.Html.Parser;
@@ -34,15 +33,18 @@ public partial class BaseRuTracker : BaseTrackerSearch
     private const string CaptchaMarker = "name=\"cap_sid\"";
     private const string InvalidCredentialsMarker = "неверное/неактивное имя пользователя или неверный пароль";
 
-    private static readonly ConcurrentDictionary<string, SessionCookie> FallbackSessions =
-        new(StringComparer.Ordinal);
-
     private readonly HtmlParser _parser = new();
+    private readonly SessionCookieStore _sessionCookies;
     private string? _authFailureReason;
 
     protected BaseRuTracker(IOptions<Config> config, TrackerHttpClient httpService, ICacheService cacheService)
         : base(config, httpService, cacheService)
     {
+        _sessionCookies = new SessionCookieStore(
+            cacheService,
+            Config.Cache.Enable,
+            TimeSpan.FromDays(Config.Cache.AuthExpiry),
+            CookieKey);
     }
 
     public override TrackerType Tracker => TrackerType.Rutracker;
@@ -58,7 +60,7 @@ public partial class BaseRuTracker : BaseTrackerSearch
         bool useProxy = false,
         CancellationToken ct = default)
     {
-        if (!TryGetSessionCookie(out string? cookie))
+        if (!_sessionCookies.TryGet(out string? cookie))
             cookie = await Authorize(false, ct);
 
         var html = await HttpService.GetStringAsync(
@@ -110,7 +112,7 @@ public partial class BaseRuTracker : BaseTrackerSearch
             }
 
             var configured = authorization.Cookie.Trim();
-            await StoreSessionCookieAsync(configured);
+            await _sessionCookies.StoreAsync(configured);
             return configured;
         }
 
@@ -143,13 +145,13 @@ public partial class BaseRuTracker : BaseTrackerSearch
 
         var setCookies = response.Headers.TryGetValues("Set-Cookie", out var values) ? values : [];
         var cookie = string.Join("; ",
-            setCookies.Select(SessionCookiePair).Where(pair => pair is not null));
+            setCookies.Select(SessionCookies.Pair).OfType<string>());
 
         // Success is a session cookie: FlareSolverr follows the login 302 to a 200 page,
         // and a bare redirect without bb_session proves nothing.
         if (LooksLikeRuTrackerSession(cookie))
         {
-            await StoreSessionCookieAsync(cookie);
+            await _sessionCookies.StoreAsync(cookie);
             return cookie;
         }
 
@@ -199,49 +201,10 @@ public partial class BaseRuTracker : BaseTrackerSearch
         return null;
     }
 
-    private bool TryGetSessionCookie(out string? cookie)
-    {
-        if (CacheService.TryGetValue(CookieKey, out cookie) && !string.IsNullOrWhiteSpace(cookie))
-            return true;
-
-        if (!Config.Cache.Enable &&
-            FallbackSessions.TryGetValue(CookieKey, out var fallback) &&
-            fallback.ExpiresAt > DateTimeOffset.UtcNow)
-        {
-            cookie = fallback.Cookie;
-            return true;
-        }
-
-        cookie = null;
-        return false;
-    }
-
-    private async Task StoreSessionCookieAsync(string cookie)
-    {
-        var expiry = TimeSpan.FromDays(Config.Cache.AuthExpiry);
-        await CacheService.SetAsync(CookieKey, cookie, expiry);
-        if (!Config.Cache.Enable)
-            FallbackSessions[CookieKey] = new SessionCookie(cookie, DateTimeOffset.UtcNow.Add(expiry));
-    }
-
-    /// <summary>
-    ///     Keeps only the name=value pair of a Set-Cookie header (attributes like path,
-    ///     expires or HttpOnly never belong in a Cookie header); returns null for empty
-    ///     or deleting (empty-value) cookies.
-    /// </summary>
-    private static string? SessionCookiePair(string setCookie)
-    {
-        var pair = setCookie.Split(';', 2)[0].Trim();
-        var separator = pair.IndexOf('=');
-        return separator > 0 && separator < pair.Length - 1 ? pair : null;
-    }
-
     private static bool LooksLikeRuTrackerSession(string cookie)
     {
         return cookie.Contains("bb_session", StringComparison.OrdinalIgnoreCase)
                || cookie.Contains("bbuserid", StringComparison.OrdinalIgnoreCase)
                || cookie.Contains("bb_data", StringComparison.OrdinalIgnoreCase);
     }
-
-    private sealed record SessionCookie(string Cookie, DateTimeOffset ExpiresAt);
 }

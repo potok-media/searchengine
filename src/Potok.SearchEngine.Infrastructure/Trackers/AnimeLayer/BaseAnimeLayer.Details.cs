@@ -212,7 +212,7 @@ public partial class BaseAnimeLayer
     private async Task<string?> FetchMagnetRedirectAsync(string topicUrl, CancellationToken ct)
     {
         var downloadUrl = $"{topicUrl.TrimEnd('/')}/download/?type=magnet";
-        CacheService.TryGetValue(CookieKey, out string? cookie);
+        _sessionCookies.TryGet(out string? cookie);
         var authorizedNow = false;
         if (string.IsNullOrWhiteSpace(cookie) && HasConfiguredCredentials())
         {
