@@ -47,14 +47,15 @@ public sealed class TorrentCatalogStore(string connectionString) : ITorrentCatal
             FROM {Schema}.torrents t
             LEFT JOIN {Schema}.torrent_media_links ml ON ml.torrent_id = t.id
             WHERE (@TmdbId::bigint IS NOT NULL AND ml.tmdb_id = @TmdbId)
-               OR (@TmdbId::bigint IS NULL AND @Title::text IS NOT NULL AND t.title ILIKE @Title)
+               OR (@TmdbId::bigint IS NULL AND @Tokens::text[] IS NOT NULL AND
+                   (t.title ILIKE ANY(@Tokens) OR t.name ILIKE ANY(@Tokens) OR t.original_name ILIKE ANY(@Tokens)))
             ORDER BY t.seeders DESC
             LIMIT @Limit
             """,
             new
             {
                 query.TmdbId,
-                Title = string.IsNullOrWhiteSpace(query.Title) ? null : $"%{query.Title}%",
+                Tokens = BuildTitlePatterns(query.Title),
                 Limit = Math.Clamp(query.Limit, 1, 2_000)
             },
             cancellationToken: ct))).AsList();
@@ -87,6 +88,24 @@ public sealed class TorrentCatalogStore(string connectionString) : ITorrentCatal
                 ? null
                 : JsonSerializer.Deserialize<ParsedTorrentInfo>(row.ParsedInfo, JsonOptions)
         }).ToArray();
+    }
+
+    // A tracker query is usually "Русское Original" glued together; the glued string never
+    // occurs in real titles, so match any meaningful token against any name column.
+    private static string[]? BuildTitlePatterns(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return null;
+
+        var tokens = title
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(token => token.Replace("%", "").Replace("_", ""))
+            .Where(token => token.Length >= 2)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(token => $"%{token}%")
+            .ToArray();
+
+        return tokens.Length == 0 ? null : tokens;
     }
 
     private sealed class CanonicalRow

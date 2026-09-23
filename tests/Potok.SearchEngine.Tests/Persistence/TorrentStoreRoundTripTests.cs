@@ -121,6 +121,33 @@ public class TorrentStoreRoundTripTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Glued_russian_original_query_matches_by_individual_tokens()
+    {
+        var observations = CreateObservationStore();
+        var catalog = CreateCatalogStore();
+        const string hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        var item = Observation(
+            TrackerType.Rutor,
+            "rutor-99",
+            "http://rutor.info/torrent/99",
+            hash,
+            "Дюна (2021) BDRip 1080p",
+            10,
+            new DateTimeOffset(2026, 9, 22, 10, 0, 0, TimeSpan.Zero),
+            ["movie"],
+            null,
+            null);
+
+        var write = await observations.UpsertAsync(new TorrentPersistRequest(
+            "Дюна Dune", null, TrackerType.Rutor, [item], TrackerIngestionReason.Interactive));
+        Assert.True(write.Succeeded);
+
+        var found = Assert.Single(await catalog.SearchAsync(new TorrentCatalogQuery(Title: "Дюна Dune")));
+        Assert.Equal(hash, found.InfoHash);
+    }
+
+    [Fact]
     public async Task Observed_null_clears_a_value_while_an_absent_field_preserves_it()
     {
         var observations = CreateObservationStore();
