@@ -14,11 +14,13 @@ public class TorrentsController : ControllerBase
 {
     private readonly ISearchService _searchService;
     private readonly ISeasonOverrideRepository _overrides;
+    private readonly Serilog.ILogger _logger;
 
-    public TorrentsController(ISearchService searchService, ISeasonOverrideRepository overrides)
+    public TorrentsController(ISearchService searchService, ISeasonOverrideRepository overrides, Serilog.ILogger logger)
     {
         _searchService = searchService;
         _overrides = overrides;
+        _logger = logger;
     }
 
     private static readonly JsonSerializerOptions StreamJson = new()
@@ -29,6 +31,7 @@ public class TorrentsController : ControllerBase
     [HttpPost("search")]
     public async Task<ActionResult<TorrentSearchResponse>> Search([FromBody] TorrentSearchRequest request)
     {
+        LogSearchRequest(request, stream: false);
         var results = await _searchService.SearchTorrentsAsync(ToQuery(request), HttpContext.RequestAborted);
         var sharedResults = results.Select(ToSearchResult).ToList();
         await AttachOverridesAsync(sharedResults);
@@ -38,6 +41,7 @@ public class TorrentsController : ControllerBase
     [HttpPost("search/stream")]
     public async Task SearchStream([FromBody] TorrentSearchRequest request)
     {
+        LogSearchRequest(request, stream: true);
         var ct = HttpContext.RequestAborted;
         HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
         Response.StatusCode = StatusCodes.Status200OK;
@@ -65,6 +69,19 @@ public class TorrentsController : ControllerBase
         await Response.Body.WriteAsync("\n"u8.ToArray(), ct);
         await Response.Body.FlushAsync(ct);
     }
+
+    private void LogSearchRequest(TorrentSearchRequest request, bool stream) =>
+        _logger.Information(
+            "Search request ({Mode}): query='{Query}' title='{Title}' originalTitle='{OriginalTitle}' englishTitle='{EnglishTitle}' year={Year} mediaType={MediaType} id={Id} forceSearch={ForceSearch}",
+            stream ? "stream" : "plain",
+            request.Query,
+            request.Title,
+            request.OriginalTitle,
+            request.EnglishTitle,
+            request.Year,
+            request.MediaType,
+            request.Id,
+            request.ForceSearch ?? false);
 
     private static TorrentSearchQuery ToQuery(TorrentSearchRequest request) => new()
     {

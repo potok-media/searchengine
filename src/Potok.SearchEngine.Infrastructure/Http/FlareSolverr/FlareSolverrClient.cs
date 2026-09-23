@@ -16,6 +16,7 @@ public sealed class FlareSolverrClient : IFlareSolverrClient, IDisposable
     private const int SessionCreateTimeoutMs = 60_000;
     private const int PingTimeoutMs = 15_000;
     private const int ChallengeAttemptTimeoutMs = 40_000;
+    private static readonly TimeSpan ChallengeSettleDelay = TimeSpan.FromMilliseconds(1500);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -65,7 +66,11 @@ public sealed class FlareSolverrClient : IFlareSolverrClient, IDisposable
     public async Task<bool> WarmupAsync(string url, CancellationToken ct)
     {
         var solution = await GetAsync(url, cookieHeader: null, proxy: null, ct);
-        return solution is not null && !string.IsNullOrWhiteSpace(solution.Html);
+        // A solved session can still return the IUAM page when the warmup raced the
+        // challenge — that is not a warm state.
+        return solution is not null &&
+               !string.IsNullOrWhiteSpace(solution.Html) &&
+               !CloudflareChallenge.IsChallengeBody(solution.Html);
     }
 
     public async Task<bool> EnsureSessionAsync(CancellationToken ct)
@@ -148,6 +153,18 @@ public sealed class FlareSolverrClient : IFlareSolverrClient, IDisposable
                 (outcome, solution) = await RequestAsync(settings, session, cmd, url, postData, cookieHeader, ct);
                 if (outcome == FetchOutcome.Ok)
                     _logger.LogWarning("{Host}: FlareSolverr succeeded after recreating the session", host);
+            }
+
+            // A status-ok answer whose body is still the IUAM page means the solve raced
+            // us (warmup in progress or clearance not yet applied): settle and retry once
+            // in the same session instead of handing the challenge page to the adapter.
+            if (outcome == FetchOutcome.Ok && CloudflareChallenge.IsChallengeBody(solution?.Html))
+            {
+                _logger.LogDebug("{Host}: FlareSolverr returned the challenge page; settling and retrying once", host);
+                await Task.Delay(ChallengeSettleDelay, ct);
+                (outcome, solution) = await RequestAsync(settings, session, cmd, url, postData, cookieHeader, ct);
+                if (outcome == FetchOutcome.Ok && CloudflareChallenge.IsChallengeBody(solution?.Html))
+                    _logger.LogWarning("{Host}: still on the Cloudflare challenge after a browser retry", host);
             }
 
             session.LastUse = DateTime.UtcNow;
