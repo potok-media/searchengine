@@ -1,0 +1,64 @@
+[
+  {
+    "id": 22988,
+    "hash": "72dc6256d17301d39b9052425cbdc859274d58d1",
+    "size": 24469065353,
+    "type": {
+      "value": "WEBRip",
+      "description": "WEBRip"
+    },
+    "label": "Ijiranaide, Nagatoro-san 2nd Attack - AniLiberty.TOP [WEBRip 1080p][AVC][1-12]",
+    "codec": {
+      "value": "x264/AVC",
+      "label": "AVC",
+      "description": "x264/AVC",
+      "label_color": null,
+      "label_is_visible": false
+    },
+    "color": {
+      "value": null,
+      "description": null
+    },
+    "magnet": "magnet:?xt=urn:btih:72DC6256D17301D39B9052425CBDC859274D58D1&dn=fixture&tr=https%3A%2F%2Ftracker.example.test%2Fannounce%3Fpasskey%3Dfixture-secret",
+    "seeders": 20,
+    "quality": {
+      "value": "1080p",
+      "description": "1080p"
+    },
+    "bitrate": null,
+    "filename": "Ijiranaide, Nagatoro-san 2nd Attack - AniLiberty.TOP [WEBRip 1080p][AVC][1-12].torrent",
+    "leechers": 0,
+    "sort_order": 0,
+    "created_at": "2023-01-08T15:32:12+00:00",
+    "updated_at": "2023-03-19T18:50:20+00:00",
+    "is_hardsub": false,
+    "description": "1-12",
+    "completed_times": 6622,
+    "release": {
+      "id": 9329,
+      "type": {
+        "value": "TV",
+        "description": "ТВ"
+      },
+      "year": 2023,
+      "name": {
+        "main": "Не издевайся, Нагаторо: Вторая атака",
+        "english": "Ijiranaide, Nagatoro-san 2nd Attack",
+        "alternative": "Не издевайся надо мной, Нагаторо [ТВ-2]"
+      },
+      "alias": "ijiranaide-nagatoro-san-2nd-attack",
+      "episodes_total": 12,
+      "description": "Тестовое описание аниме-релиза."
+    },
+    "torrent_members": [
+      {
+        "nickname": "Voice One",
+        "role": "voice"
+      },
+      {
+        "nickname": "Translator One",
+        "role": "translator"
+      }
+    ]
+  }
+]
