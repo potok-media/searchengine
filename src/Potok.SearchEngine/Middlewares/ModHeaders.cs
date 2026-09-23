@@ -18,8 +18,17 @@ public class ModHeaders
 
         httpContext.Response.Headers.AccessControlAllowCredentials = "true";
         httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
-        httpContext.Response.Headers.AccessControlAllowHeaders = "Accept, Origin, Content-Type";
-        httpContext.Response.Headers.AccessControlAllowMethods = "POST, GET, OPTIONS";
+
+        // Allow everything: echo whatever the preflight asks for (a bare "*" is invalid
+        // alongside Allow-Credentials), fall back to "*" when there is no preflight.
+        httpContext.Response.Headers.AccessControlAllowHeaders =
+            httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var requestHeaders)
+                ? requestHeaders.ToString()
+                : "*";
+        httpContext.Response.Headers.AccessControlAllowMethods =
+            httpContext.Request.Headers.TryGetValue("Access-Control-Request-Method", out var requestMethod)
+                ? requestMethod.ToString()
+                : "*";
 
         if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
             httpContext.Response.Headers.AccessControlAllowOrigin = origin.ToString();
