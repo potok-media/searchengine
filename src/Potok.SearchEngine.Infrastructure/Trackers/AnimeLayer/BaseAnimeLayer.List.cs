@@ -24,7 +24,7 @@ public partial class BaseAnimeLayer
             var titleLink = row.QuerySelector("a[href*='/torrent/']");
             var idMatch = Regex.Match(titleLink?.GetAttribute("href") ?? string.Empty,
                 @"/torrent/(?<id>[a-z0-9]+)/?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            var categoryLink = row.QuerySelector("a.category[href], a[href^='/torrents/']");
+            var categoryLink = row.QuerySelector("a.category[href], label.category, a[href^='/torrents/']");
             if (titleLink is null || !idMatch.Success || !IsAnimeCategory(categoryLink))
                 continue;
 
