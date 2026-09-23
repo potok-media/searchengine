@@ -147,7 +147,12 @@ public class RuTrackerContractTests
         var handler = new ScriptedHttpMessageHandler();
         handler.Enqueue(_ => TrackerTestClients.Html(Fixture("signed-out.html")));
         handler.EnqueueStatus(HttpStatusCode.Unauthorized);
-        var tracker = CreateTracker(handler);
+        var config = EnabledConfig();
+        config.RuTracker.Authorization = new() { Login = "fixture-user", Password = "fixture-pass" };
+        var tracker = new RuTrackerSearch(
+            Options.Create(config),
+            TrackerTestClients.CreateHttpClient(handler, config),
+            new FixtureCache("fixture-session"));
 
         var error = await Assert.ThrowsAsync<TrackerSearchException>(
             () => tracker.SearchAsync("Дюна Dune"));
@@ -155,6 +160,93 @@ public class RuTrackerContractTests
         Assert.Equal(TrackerType.Rutracker, error.Tracker);
         Assert.Equal(TrackerSearchErrorCode.Authentication, error.Code);
         Assert.Equal(2, handler.RequestUrls.Count);
+    }
+
+    [Fact]
+    public async Task Configured_cookie_is_sent_without_a_login_request()
+    {
+        string? sentCookie = null;
+        var handler = new ScriptedHttpMessageHandler();
+        handler.Enqueue(request =>
+        {
+            sentCookie = request.Headers.TryGetValues("Cookie", out var values)
+                ? string.Join(",", values)
+                : null;
+            return TrackerTestClients.Html(Fixture("search-list.html"));
+        });
+        handler.Enqueue(_ => TrackerTestClients.Html(Fixture("topic-complete.html")));
+        var config = EnabledConfig();
+        config.RuTracker.Authorization = new() { Cookie = "bb_session=configured-session" };
+        var tracker = new RuTrackerSearch(
+            Options.Create(config),
+            TrackerTestClients.CreateHttpClient(handler, config),
+            new FixtureCache());
+
+        var result = Assert.Single(await tracker.SearchAsync("Дюна Dune"));
+
+        Assert.Equal("6677889", result.Source!.SourceKey);
+        Assert.Equal("bb_session=configured-session", sentCookie);
+        Assert.DoesNotContain(handler.RequestUrls, url => url.Contains("login.php", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Successful_login_strips_set_cookie_attributes_from_the_session_header()
+    {
+        string? sentCookie = null;
+        var handler = new ScriptedHttpMessageHandler();
+        handler.Enqueue(_ =>
+        {
+            // The FlareSolverr shape: the browser follows the login 302 and the
+            // synthesized response carries the session cookies on a 200.
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            response.Headers.TryAddWithoutValidation("Set-Cookie",
+                "bb_session=fresh-session; path=/; domain=.rutracker.org; secure; HttpOnly");
+            return response;
+        });
+        handler.Enqueue(request =>
+        {
+            sentCookie = request.Headers.TryGetValues("Cookie", out var values)
+                ? string.Join(",", values)
+                : null;
+            return TrackerTestClients.Html(Fixture("search-list.html"));
+        });
+        handler.Enqueue(_ => TrackerTestClients.Html(Fixture("topic-complete.html")));
+        var config = EnabledConfig();
+        config.RuTracker.Authorization = new() { Login = "fixture-user", Password = "fixture-pass" };
+        var tracker = new RuTrackerSearch(
+            Options.Create(config),
+            TrackerTestClients.CreateHttpClient(handler, config),
+            new StoringCache());
+
+        var result = Assert.Single(await tracker.SearchAsync("Дюна Dune"));
+
+        Assert.Equal("6677889", result.Source!.SourceKey);
+        Assert.Equal("bb_session=fresh-session", sentCookie);
+        Assert.Contains("login.php", handler.RequestUrls[0]);
+    }
+
+    [Fact]
+    public async Task Captcha_gated_login_throws_authentication_error_naming_the_captcha()
+    {
+        var handler = new ScriptedHttpMessageHandler();
+        handler.Enqueue(_ => TrackerTestClients.Html(Fixture("login-captcha.html")));
+        handler.Enqueue(_ => TrackerTestClients.Html(Fixture("signed-out.html")));
+        handler.Enqueue(_ => TrackerTestClients.Html(Fixture("login-captcha.html")));
+        var config = EnabledConfig();
+        config.RuTracker.Authorization = new() { Login = "fixture-user", Password = "fixture-pass" };
+        var tracker = new RuTrackerSearch(
+            Options.Create(config),
+            TrackerTestClients.CreateHttpClient(handler, config),
+            new FixtureCache());
+
+        var error = await Assert.ThrowsAsync<TrackerSearchException>(
+            () => tracker.SearchAsync("Дюна Dune"));
+
+        Assert.Equal(TrackerType.Rutracker, error.Tracker);
+        Assert.Equal(TrackerSearchErrorCode.Authentication, error.Code);
+        Assert.Contains("captcha", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(3, handler.RequestUrls.Count);
+        Assert.Contains("login.php", handler.RequestUrls[0]);
     }
 
     private static ITrackerSearch CreateTracker(HttpMessageHandler handler) => new RuTrackerSearch(
@@ -169,4 +261,38 @@ public class RuTrackerContractTests
     };
 
     private static string Fixture(string name) => TrackerTestClients.ReadFixture("RuTracker", name);
+
+    /// <summary>In-memory cache that actually stores, mirroring the enabled CacheService.</summary>
+    private sealed class StoringCache : ICacheService
+    {
+        private readonly Dictionary<string, object> _values = new();
+
+        public Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiry = null) =>
+            factory();
+
+        public Task InvalidateAsync(string key)
+        {
+            _values.Remove(key);
+            return Task.CompletedTask;
+        }
+
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
+        {
+            if (value is not null)
+                _values[key] = value;
+            return Task.CompletedTask;
+        }
+
+        public bool TryGetValue<T>(string key, out T? value)
+        {
+            if (_values.TryGetValue(key, out var stored) && stored is T typed)
+            {
+                value = typed;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+    }
 }
