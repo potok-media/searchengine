@@ -158,7 +158,7 @@ public static partial class TrackerPayload
 
     private static bool IsSensitiveKey(string key) => SensitiveKeyRegex().IsMatch(key);
 
-    [GeneratedRegex(@"cookie|authorization|password|парол|login|логин|token|session|passkey|proxy|user",
+    [GeneratedRegex(@"(^|[_.\-])(cookie|authorization|password|парол|login|логин|token|session|passkey|proxy|user)([_.\-]|$)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SensitiveKeyRegex();
 }

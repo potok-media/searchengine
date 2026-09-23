@@ -17,12 +17,15 @@ public abstract class BaseTrackerSearch : ITrackerSearch
     static BaseTrackerSearch()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        RuEncoding = Encoding.GetEncoding("windows-1251");
     }
 
     /// <summary>
     ///     windows-1251 for legacy tracker pages (RuTracker, Kinozal, NNMClub, MegaPeer).
+    ///     Initialized inside the static ctor: field initializers run before it, and
+    ///     GetEncoding throws until the code-pages provider is registered.
     /// </summary>
-    protected static readonly Encoding RuEncoding = Encoding.GetEncoding("windows-1251");
+    protected static readonly Encoding RuEncoding;
 
     protected readonly ICacheService CacheService;
     protected readonly Config Config;
