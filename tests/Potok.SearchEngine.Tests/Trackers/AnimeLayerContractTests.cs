@@ -188,7 +188,7 @@ public class AnimeLayerContractTests
             Task.FromResult(TrackerTestClients.Html(empty)));
         ITrackerSearch tracker = CreateTracker(handler);
 
-        Assert.Empty(await tracker.SearchAsync("Дюна Dune"));
+        Assert.Empty(await tracker.SearchAsync("Дюна"));
         Assert.Single(handler.RequestUrls);
     }
 
@@ -241,6 +241,40 @@ public class AnimeLayerContractTests
 
         Assert.Equal(2, results.Count);
         Assert.All(results, result => Assert.Equal("Атака титанов", result.Name));
+    }
+
+    [Fact]
+    public async Task Empty_bilingual_query_falls_back_to_the_russian_part()
+    {
+        const string emptyList = """
+            <html><body><div id="wrapper"><ul class="torrents-list">
+            <li class="torrent-item panel pd20 text-center"><div class="h2">Торрентов не найдено</div></li>
+            </ul></div></body></html>
+            """;
+        var handler = new RoutingHttpMessageHandler((request, _) =>
+        {
+            var url = request.RequestUri!.ToString();
+            if (url.Contains("/torrents/anime/?q=", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(url.Contains("Attack", StringComparison.Ordinal)
+                    ? emptyList
+                    : TrackerTestClients.ReadFixture("AnimeLayer", "search-list.html")));
+            if (url.Contains("aaaaaaaaaaaaaaaaaaaaaaaa", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(Topic("0123456789ABCDEF0123456789ABCDEF01234567")));
+            if (url.Contains("bbbbbbbbbbbbbbbbbbbbbbbb", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(Topic("7CC6F866595149DE96DAD57F566AD1481F6837E3")));
+            throw new InvalidOperationException($"Unexpected AnimeLayer request: {url}");
+        });
+        ITrackerSearch tracker = CreateTracker(handler);
+
+        var results = await tracker.SearchAsync("Атака титанов Attack on Titan");
+
+        Assert.Equal(2, results.Count);
+        var searchUrls = handler.RequestUrls
+            .Where(url => url.Contains("/torrents/anime/?q=", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(2, searchUrls.Length);
+        Assert.Single(searchUrls, url => url.Contains("Attack", StringComparison.Ordinal));
+        Assert.Single(searchUrls, url => !url.Contains("Attack", StringComparison.Ordinal));
     }
 
     private static ITrackerSearch CreateTracker(HttpMessageHandler handler)

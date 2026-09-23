@@ -26,6 +26,20 @@ public class AnimeLayerSearch : BaseAnimeLayer
         if (!Config.AnimeLayer.EnableSearch)
             return [];
 
+        var torrents = await FetchAndParseAsync(query, ct);
+
+        // AnimeLayer finds nothing for a bilingual "Русское Original" query; retry with
+        // the Cyrillic part only. One fallback, never a loop.
+        if (torrents.Count == 0 && TryGetCyrillicQuery(query, out var fallbackQuery))
+            torrents = await FetchAndParseAsync(fallbackQuery, ct);
+
+        if (torrents.Count == 0)
+            return [];
+        return await EnrichVideoTopicsAsync(torrents, ct);
+    }
+
+    private async Task<IReadOnlyCollection<TorrentDetails>> FetchAndParseAsync(string query, CancellationToken ct)
+    {
         var url = $"{Host}/torrents/anime/?q={Uri.EscapeDataString(query)}";
         string html;
         try
@@ -59,9 +73,17 @@ public class AnimeLayerSearch : BaseAnimeLayer
             throw new TrackerSearchException(Tracker, TrackerSearchErrorCode.ParserContract,
                 "AnimeLayer search response did not contain the torrent result surface.");
 
-        var torrents = ParseSearchPage(html);
-        if (torrents.Count == 0)
-            return [];
-        return await EnrichVideoTopicsAsync(torrents, ct);
+        return ParseSearchPage(html);
+    }
+
+    private static bool TryGetCyrillicQuery(string query, out string fallbackQuery)
+    {
+        var cyrillicTokens = query
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(token => token.Any(c => c is >= 'а' and <= 'я' or >= 'А' and <= 'Я' or 'ё' or 'Ё'))
+            .ToArray();
+
+        fallbackQuery = string.Join(' ', cyrillicTokens);
+        return cyrillicTokens.Length > 0 && !string.Equals(fallbackQuery, query, StringComparison.Ordinal);
     }
 }
