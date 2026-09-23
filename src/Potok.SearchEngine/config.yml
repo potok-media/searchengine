@@ -1,0 +1,68 @@
+# SearchEngine tracker config.
+# Create ./config.yml next to docker-compose.yml — compose mounts it as config.local.yml.
+# Guide: https://potok.rip/wiki (page «SearchEngine & TorrentGo» in the sidebar).
+# Listen port is PORT / SEARCH_ENGINE_PORT, not this file.
+
+cache:
+  enable: true
+  expiry: 15          # min
+  auth-expiry: 1      # days
+
+refresh:
+  enable: false
+  timeout: 1440       # min
+  older-than-min: 180
+  limit: 50
+  peer-freshness-min: 10080
+
+# External media-name resolver (alloha.tv) for subscribe/refresh queries.
+mediaresolver:
+  alloha-token: '04941a9a3ca3ac16e2b4327347bbc1'
+
+# HTTP/SOCKS proxies for tracker requests. list: [] — home IP (trackers can ban it).
+# Full URLs, credentials in the URI. Several URLs: round-robin per request.
+# Cloudflare (FlareSolverr) pins one IP for the browser session.
+proxy:
+  bypass-on-local: false
+  list:
+    - 'socks5://user:pass@proxy.example.com:1080'
+    - 'http://proxy.example.com:8080'
+
+# Cloudflare bypass via FlareSolverr (headless Chrome next to SearchEngine).
+flaresolverr:
+  enable: true
+  url: http://flaresolverr:8191/v1
+  max-timeout-ms: 180000
+  session-idle-minutes: 30
+  guarded-hours: 6
+  recheck-minutes: 30
+
+rutracker:
+  enable-search: true
+  authorization:
+    login: ''
+    password: ''
+
+animelayer:
+  enable-search: true
+  authorization:
+    login: ''
+    password: ''
+
+nnmclub:
+  enable-search: true
+
+rutor:
+  enable-search: true
+
+aniliberty:
+  enable-search: true
+
+kinozal:
+  enable-search: true
+  authorization:
+    login: ''
+    password: ''
+
+megapeer:
+  enable-search: true
