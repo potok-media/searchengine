@@ -162,6 +162,53 @@ public class AnimeLayerContractTests
         Assert.Equal(3, handler.RequestUrls.Count);
     }
 
+    [Fact]
+    public async Task Magnet_is_resolved_via_download_redirect_when_topic_has_no_inline_magnet()
+    {
+        const string location =
+            "magnet:?xt=urn:btih:0123456789ABCDEF0123456789ABCDEF01234567&dn=Attack.on.Titan" +
+            "&tr=https%3A%2F%2Fanimelayer.ru%2Fannounce%3Fpasskey%3Dredirect-secret";
+        var handler = new RoutingHttpMessageHandler((request, _) =>
+        {
+            var url = request.RequestUri!.ToString();
+            if (url.Contains("/torrents/anime/?q=", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(TrackerTestClients.ReadFixture("AnimeLayer", "search-list.html")));
+            if (url.Contains("/download/?type=magnet", StringComparison.Ordinal))
+            {
+                Assert.Equal(HttpMethod.Post, request.Method);
+                var redirect = new HttpResponseMessage(HttpStatusCode.Found);
+                redirect.Headers.TryAddWithoutValidation("Location", location);
+                return Task.FromResult(redirect);
+            }
+            if (url.Contains("aaaaaaaaaaaaaaaaaaaaaaaa", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(TrackerTestClients.ReadFixture("AnimeLayer", "topic-magnet-redirect.html")));
+            if (url.Contains("bbbbbbbbbbbbbbbbbbbbbbbb", StringComparison.Ordinal))
+                return Task.FromResult(TrackerTestClients.Html(Topic("7CC6F866595149DE96DAD57F566AD1481F6837E3")));
+            throw new InvalidOperationException($"Unexpected AnimeLayer request: {url}");
+        });
+        ITrackerSearch tracker = CreateTracker(handler);
+
+        var results = await tracker.SearchAsync("Атака титанов Attack on Titan");
+
+        Assert.Equal(2, results.Count);
+        Assert.Single(handler.RequestUrls,
+            url => url.EndsWith("/torrent/aaaaaaaaaaaaaaaaaaaaaaaa/download/?type=magnet", StringComparison.Ordinal));
+        var attack = results.Single(result => result.Source!.SourceKey == "aaaaaaaaaaaaaaaaaaaaaaaa");
+        Assert.Equal(TrackerDetailsState.Fetched, attack.Source!.DetailsState);
+        Assert.Equal("0123456789abcdef0123456789abcdef01234567", attack.InfoHash);
+        Assert.NotNull(attack.Magnet);
+        Assert.StartsWith("magnet:?xt=urn:btih:0123456789ABCDEF0123456789ABCDEF01234567", attack.Magnet, StringComparison.Ordinal);
+        Assert.DoesNotContain("passkey", attack.Magnet, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("redirect-secret", attack.Magnet, StringComparison.Ordinal);
+
+        var payload = attack.Source.SourcePayload;
+        var warnings = payload.GetProperty("warnings").EnumerateArray().Select(value => value.GetString()).ToArray();
+        Assert.Contains("secret_query_redacted", warnings);
+        var payloadText = payload.GetRawText();
+        Assert.DoesNotContain("passkey", payloadText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("redirect-secret", payloadText, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("<html><title>Just a moment...</title><div class='cf-chl-test'></div></html>", TrackerSearchErrorCode.Challenge)]
     [InlineData("<html><form action='/auth/login/'><input name='login'><input name='password' type='password'></form></html>", TrackerSearchErrorCode.Authentication)]

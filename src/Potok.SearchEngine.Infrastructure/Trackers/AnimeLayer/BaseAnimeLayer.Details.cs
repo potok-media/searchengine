@@ -58,6 +58,8 @@ public partial class BaseAnimeLayer
             var hiddenSections = ExtractHiddenSections(body, warnings);
             var rawMagnet = WebUtility.HtmlDecode(
                 document.QuerySelector("a[href^='magnet:']")?.GetAttribute("href") ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(rawMagnet))
+                rawMagnet = await FetchMagnetRedirectAsync(torrent.Url, ct) ?? string.Empty;
             var safeMagnet = MagnetBuilder.Sanitize(rawMagnet) ?? rawMagnet;
             if (!string.Equals(safeMagnet, rawMagnet, StringComparison.Ordinal))
                 warnings.Add("secret_query_redacted");
@@ -199,6 +201,51 @@ public partial class BaseAnimeLayer
                 TrackerPayload.EmptyObject, ["detail_fetch_failed"], null);
             return false;
         }
+    }
+
+    /// <summary>
+    ///     Topic pages no longer carry an inline magnet: it lives behind
+    ///     /torrent/{id}/download/?type=magnet, which answers 302 with the magnet in the
+    ///     Location header. The redirect is not followed (the target is a magnet: URI) and
+    ///     the session cookie is refreshed once when a cached one no longer authorizes.
+    /// </summary>
+    private async Task<string?> FetchMagnetRedirectAsync(string topicUrl, CancellationToken ct)
+    {
+        var downloadUrl = $"{topicUrl.TrimEnd('/')}/download/?type=magnet";
+        CacheService.TryGetValue(CookieKey, out string? cookie);
+        var authorizedNow = false;
+        if (string.IsNullOrWhiteSpace(cookie) && HasConfiguredCredentials())
+        {
+            cookie = await Authorize(ct: ct);
+            authorizedNow = true;
+        }
+
+        var magnet = await RequestMagnetLocationAsync(downloadUrl, topicUrl, cookie, ct);
+        if (magnet is not null || authorizedNow || !HasConfiguredCredentials())
+            return magnet;
+
+        cookie = await Authorize(reAuth: true, ct);
+        if (string.IsNullOrWhiteSpace(cookie))
+            return null;
+        return await RequestMagnetLocationAsync(downloadUrl, topicUrl, cookie, ct);
+    }
+
+    private async Task<string?> RequestMagnetLocationAsync(
+        string downloadUrl,
+        string referer,
+        string? cookie,
+        CancellationToken ct)
+    {
+        using var response = await HttpService.PostResponseAsync(
+            downloadUrl, content: null, cookie, referer, encoding: null,
+            useProxy: true, allowRedirect: false, ct);
+        if ((int)response.StatusCode is < 300 or >= 400)
+            return null;
+        var location = response.Headers.TryGetValues("Location", out var values)
+            ? values.FirstOrDefault()
+            : null;
+        location = WebUtility.HtmlDecode(location ?? string.Empty).Trim();
+        return location.StartsWith("magnet:", StringComparison.OrdinalIgnoreCase) ? location : null;
     }
 
     private static void UpdateSource(
