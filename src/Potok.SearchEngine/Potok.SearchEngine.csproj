@@ -7,6 +7,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Potok.SearchEngine</RootNamespace>
         <AssemblyName>Potok.SearchEngine</AssemblyName>
+        <UserSecretsId>fa83ba57-f50a-435e-8566-dc79507daf95</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>

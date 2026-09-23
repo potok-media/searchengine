@@ -1,0 +1,72 @@
+services:
+  # 🔍 Tracker search engine (SearchEngine)
+  potok-searchengine:
+    build:
+      context: ../potok-searchengine
+      dockerfile: src/Potok.SearchEngine/Dockerfile
+    image: ghcr.io/potok-media/potok-searchengine:latest
+    container_name: potok-searchengine
+    restart: unless-stopped
+    ports:
+      - "${SEARCH_ENGINE_PORT:-6000}:${SEARCH_ENGINE_PORT:-6000}"
+    environment:
+      - PORT=${SEARCH_ENGINE_PORT:-6000}
+      - ConnectionStrings__DefaultConnection=Host=${DB_HOST:-db};Port=${DB_PORT:-5432};Database=${DB_NAME:-potok};Username=${DB_USER:-potok};Password=${DB_PASSWORD:-potok};Timeout=30;CommandTimeout=60;
+    volumes:
+      # Mount the tracker config so it can be edited on the host without rebuilding.
+      - ./config.yml:/app/config.local.yml
+    depends_on:
+      db:
+        condition: service_healthy
+      flaresolverr:
+        condition: service_healthy
+
+  # Cloudflare challenge solver for RU trackers (rutracker.org etc.).
+  # SearchEngine talks to it on the compose network. Do not publish 8191.
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: potok-flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=Europe/Moscow
+    ports:
+      - "8191:8191"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8191/health', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # 🗄️ PostgreSQL (bundled — required by Gateway and SearchEngine).
+  # To use an external/shared database instead, point DB_HOST at it and remove this service.
+  db:
+    image: postgres:16-alpine
+    container_name: potok-searchengine-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-potok}
+      POSTGRES_USER: ${DB_USER:-potok}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-potok}
+    expose:
+      - "5432"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - potok-searchengine-db:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USER:-potok} -d ${DB_NAME:-potok}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  potok-searchengine-db:
+    name: potok-searchengine-db
+

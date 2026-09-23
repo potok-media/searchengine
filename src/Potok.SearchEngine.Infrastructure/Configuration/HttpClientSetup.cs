@@ -24,7 +24,11 @@ internal static class HttpClientSetup
             ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
             CheckCertificateRevocationList = false,
             SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-            AllowAutoRedirect = allowAutoRedirect
+            AllowAutoRedirect = allowAutoRedirect,
+            // Tracker cookies are managed manually via the Cookie header; a shared
+            // CookieContainer on named clients would leak sessions between trackers and
+            // make repeat logins return no Set-Cookie (anonymizing subsequent requests).
+            UseCookies = false
         };
 
         if (proxy is not null)
