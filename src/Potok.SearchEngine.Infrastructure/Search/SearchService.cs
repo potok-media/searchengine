@@ -76,16 +76,11 @@ public class SearchService : BaseSearchService, ISearchService
         if (request.TmdbId.HasValue)
             local = await _localSearch.SearchByTmdbIdAsync(request.TmdbId.Value);
 
-        List<TorrentDetails>? localFinal = null;
-        if (local.Count > 0)
-        {
-            localFinal = await MergeFilterSortAsync(local, request);
-            yield return new TorrentSearchBatch("cache", localFinal);
-        }
-
         if (local.Count > 0 && !request.ForceSearch)
         {
-            await CacheService.SetAsync(cacheKey, localFinal!, expiry);
+            var localFinal = await MergeFilterSortAsync(local, request);
+            yield return new TorrentSearchBatch("cache", localFinal);
+            await CacheService.SetAsync(cacheKey, localFinal, expiry);
             yield break;
         }
 
