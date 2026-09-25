@@ -54,8 +54,22 @@ public class OverridesController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(hash)) return BadRequest("hash is required");
         if (body == null || string.IsNullOrWhiteSpace(body.FileId)) return BadRequest("fileId is required");
-        var mode = body.Mode == "pin" ? "pin" : "anchor"; // only two valid modes; default to anchor
-        var fileMap = await _repo.UpsertFileAsync(hash.ToLower(), body.FileId, new FileOverrideEntry(body.Season, body.Episode, mode));
+        if (body.Mode is not ("pin" or "anchor")) return BadRequest("mode must be pin or anchor");
+        if (body.ArmTarget is { } target)
+        {
+            if (target.WorkId == Guid.Empty || target.OrderingId == Guid.Empty || target.GroupId == Guid.Empty || target.EpisodeId == Guid.Empty)
+                return BadRequest("armTarget requires non-empty workId, orderingId, groupId and episodeId");
+        }
+        else if (body.Season is null or < 0 || body.Episode is null or < 0)
+        {
+            return BadRequest("A canonical armTarget or legacy season and episode is required");
+        }
+        if (body.ScopeFileIds is { } scope &&
+            (body.Mode != "anchor" || scope.Count is < 1 or > 2000 || scope.Any(string.IsNullOrWhiteSpace)
+             || scope.Distinct(StringComparer.Ordinal).Count() != scope.Count || !scope.Contains(body.FileId)))
+            return BadRequest("scopeFileIds must contain unique file ids including the anchor file");
+        var fileMap = await _repo.UpsertFileAsync(hash.ToLower(), body.FileId,
+            new FileOverrideEntry(body.Season, body.Episode, body.Mode, body.ArmTarget, body.ScopeFileIds));
         return Ok(new { success = true, fileMap });
     }
 

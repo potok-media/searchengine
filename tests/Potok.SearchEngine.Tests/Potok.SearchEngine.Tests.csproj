@@ -23,6 +23,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Potok.SearchEngine.Core\Potok.SearchEngine.Core.csproj" />
         <ProjectReference Include="..\..\src\Potok.SearchEngine.Infrastructure\Potok.SearchEngine.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\src\Potok.SearchEngine\Potok.SearchEngine.csproj" />
     </ItemGroup>
 
 </Project>

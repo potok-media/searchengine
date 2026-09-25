@@ -74,10 +74,18 @@ public record TorrentSearchStreamEvent(
 // season to a TMDB (Season, Offset): displayedEpisode = parsedEpisode + Offset.
 public record SeasonOverrideEntry(int Season, int Offset);
 
-// Per-FILE override (phase 2). Mode "anchor" = this file starts a renumbered run at (Season, Episode) and the
-// following files increment; "pin" = this one file is fixed at (Season, Episode) and does not shift its
-// neighbours (used for specials / one-offs). Keyed by the torrent file id.
-public record FileOverrideEntry(int Season, int Episode, string Mode);
+// Overrides stay in the existing file_map JSONB. Canonical targets are validated by ARM
+// against its active layout at release resolution; SearchEngine owns persistence only.
+// Scoped anchors map files in manifest order within one ARM group, and pins do not
+// consume that run. Nullable numeric coordinates retain older persisted overrides.
+public sealed record ArmEpisodeOverrideTarget(Guid WorkId, Guid OrderingId, Guid GroupId, Guid EpisodeId);
+
+public record FileOverrideEntry(
+    int? Season,
+    decimal? Episode,
+    string Mode,
+    ArmEpisodeOverrideTarget? ArmTarget = null,
+    IReadOnlyList<string>? ScopeFileIds = null);
 
 public record TorrentOverrideMap(
     string Hash,
@@ -86,7 +94,13 @@ public record TorrentOverrideMap(
 
 public record UpsertSeasonOverrideRequest(int? SourceSeason, int TargetSeason, int Offset);
 
-public record UpsertFileOverrideRequest(string FileId, int Season, int Episode, string Mode);
+public record UpsertFileOverrideRequest(
+    string FileId,
+    int? Season = null,
+    decimal? Episode = null,
+    string Mode = "anchor",
+    ArmEpisodeOverrideTarget? ArmTarget = null,
+    IReadOnlyList<string>? ScopeFileIds = null);
 
 // Continue-watching cursor for a title on this SearchEngine instance. One row per (mediaType, tmdbId).
 // `Stream` is the opaque torrent payload the plugin needs to POST /api/torrents again.
