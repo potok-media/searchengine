@@ -4,3 +4,12 @@ obj/
 .vs/
 *.user
 config.local.yml
+
+# Agent/tooling state — local only, never commit
+.DS_Store
+.serena/
+.claude/
+.superpowers/
+.antigravitycli/
+.playwright-mcp/
+docs/

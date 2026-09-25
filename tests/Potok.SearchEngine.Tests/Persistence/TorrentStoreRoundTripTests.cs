@@ -17,7 +17,7 @@ public class TorrentStoreRoundTripTests : IAsyncLifetime
 {
     private static string AdminConnectionString =>
         Environment.GetEnvironmentVariable("POTOK_SEARCH_TEST_POSTGRES") ??
-        "Host=localhost;Port=5432;Database=postgres;Username=***REMOVED***;Password=***REMOVED***";
+        "Host=localhost;Port=5432;Database=postgres;Username=potok;Password=potok";
 
     private readonly string _database = $"potok_searchtest_{Guid.NewGuid():N}";
 
