@@ -76,9 +76,11 @@ public record SeasonOverrideEntry(int Season, int Offset);
 
 // Overrides stay in the existing file_map JSONB. Canonical targets are validated by ARM
 // against its active layout at release resolution; SearchEngine owns persistence only.
-// Scoped anchors map files in manifest order within one ARM group, and pins do not
+// Scoped anchors map files in manifest order within one ARM entry, and pins do not
 // consume that run. Nullable numeric coordinates retain older persisted overrides.
-public sealed record ArmEpisodeOverrideTarget(Guid WorkId, Guid OrderingId, Guid GroupId, Guid EpisodeId);
+// The v2 graph dropped the ordering indirection and renamed groupId to entryId; the
+// DropArmOverrideTargets migration cleared pre-v2 bindings whose episode ids are dead.
+public sealed record ArmEpisodeOverrideTarget(Guid WorkId, Guid EntryId, Guid EpisodeId);
 
 public record FileOverrideEntry(
     int? Season,

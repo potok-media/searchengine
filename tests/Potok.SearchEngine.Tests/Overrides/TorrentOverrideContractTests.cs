@@ -10,7 +10,7 @@ namespace Potok.SearchEngine.Tests.Overrides;
 public class TorrentOverrideContractTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    private static readonly ArmEpisodeOverrideTarget Target = new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+    private static readonly ArmEpisodeOverrideTarget Target = new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
     [Fact]
     public void JsonbContractReadsOldNumericOverridesAndPreservesNewCanonicalTargets()
@@ -23,6 +23,7 @@ public class TorrentOverrideContractTests
         var json = JsonSerializer.Serialize(map, JsonOptions);
         using var document = JsonDocument.Parse(json);
         Assert.Equal(Target.EpisodeId, document.RootElement.GetProperty("file-1").GetProperty("armTarget").GetProperty("episodeId").GetGuid());
+        Assert.Equal(Target.EntryId, document.RootElement.GetProperty("file-1").GetProperty("armTarget").GetProperty("entryId").GetGuid());
         var restored = JsonSerializer.Deserialize<Dictionary<string, FileOverrideEntry>>(json, JsonOptions)!;
         Assert.Equal(Target, restored["file-1"].ArmTarget);
         Assert.Equal(new[] { "file-1", "file-2" }, restored["file-1"].ScopeFileIds);
@@ -58,7 +59,7 @@ public class TorrentOverrideContractTests
         request = error switch
         {
             "invalid-mode" => request with { Mode = "foo" },
-            "empty-guid" => request with { ArmTarget = Target with { GroupId = Guid.Empty } },
+            "empty-guid" => request with { ArmTarget = Target with { EntryId = Guid.Empty } },
             "empty-scope" => request with { ScopeFileIds = [] },
             "duplicate-scope" => request with { ScopeFileIds = ["first", "first"] },
             "missing-anchor" => request with { ScopeFileIds = ["second"] },

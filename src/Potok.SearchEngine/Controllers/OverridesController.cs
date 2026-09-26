@@ -57,8 +57,8 @@ public class OverridesController : ControllerBase
         if (body.Mode is not ("pin" or "anchor")) return BadRequest("mode must be pin or anchor");
         if (body.ArmTarget is { } target)
         {
-            if (target.WorkId == Guid.Empty || target.OrderingId == Guid.Empty || target.GroupId == Guid.Empty || target.EpisodeId == Guid.Empty)
-                return BadRequest("armTarget requires non-empty workId, orderingId, groupId and episodeId");
+            if (target.WorkId == Guid.Empty || target.EntryId == Guid.Empty || target.EpisodeId == Guid.Empty)
+                return BadRequest("armTarget requires non-empty workId, entryId and episodeId");
         }
         else if (body.Season is null or < 0 || body.Episode is null or < 0)
         {
