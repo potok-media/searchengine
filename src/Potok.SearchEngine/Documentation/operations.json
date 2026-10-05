@@ -1,0 +1,664 @@
+{
+  "Torrents.Search": {
+    "tag": "Поиск",
+    "summary": "Найти торренты",
+    "description": "Результаты всех источников одним JSON. id — TMDB ID, year — строка; mediaType=tv включает поиск сериала, остальные значения идут как фильм. title использует query, если не задан; originalTitle приоритетнее englishTitle. genres и workId сейчас не участвуют в поиске. Торрент в примере вымышленный.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "TorrentSearchResponse",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "results": [
+                {
+                  "id": "0123456789abcdef0123456789abcdef01234567",
+                  "title": "Fullmetal Alchemist Brotherhood S01 1080p",
+                  "tracker": "ExampleTracker",
+                  "sizeBytes": 2147483648,
+                  "sizeLabel": null,
+                  "seeders": 18,
+                  "leechers": 2,
+                  "publishDate": "2026-10-01T12:00:00Z",
+                  "magnetUri": "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567",
+                  "link": "https://tracker.example.com/releases/1",
+                  "tags": [
+                    {
+                      "kind": "quality",
+                      "value": "1080p"
+                    }
+                  ],
+                  "viewed": null,
+                  "override": null
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "query": "Fullmetal Alchemist Brotherhood",
+          "mediaType": "tv",
+          "id": 31911,
+          "title": "Стальной алхимик: Братство",
+          "originalTitle": "鋼の錬金術師 FULLMETAL ALCHEMIST",
+          "englishTitle": "Fullmetal Alchemist: Brotherhood",
+          "year": "2009",
+          "forceSearch": false
+        }
+      }
+    }
+  },
+  "Torrents.SearchStream": {
+    "tag": "Поиск",
+    "summary": "Получать результаты по мере готовности",
+    "description": "application/x-ndjson: отдельный JSON на каждой строке. Непустые batch содержат source и results; done завершает выдачу. Читайте поток построчно, не вызывайте response.json() для всего тела. Клиентский разрыв отменяет запрос. После отправки заголовков ошибка может оборвать поток без done.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "string",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": "{\"type\":\"batch\",\"source\":\"ExampleTracker\",\"results\":[{\"id\":\"0123456789abcdef0123456789abcdef01234567\",\"title\":\"Fullmetal Alchemist Brotherhood S01 1080p\",\"tracker\":\"ExampleTracker\",\"sizeBytes\":2147483648,\"sizeLabel\":null,\"seeders\":18,\"leechers\":2,\"publishDate\":\"2026-10-01T12:00:00Z\",\"magnetUri\":\"magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567\",\"link\":\"https://tracker.example.com/releases/1\",\"tags\":[{\"kind\":\"quality\",\"value\":\"1080p\"}],\"viewed\":null,\"override\":null}]}\n{\"type\":\"done\",\"source\":null,\"results\":null}\n"
+          }
+        },
+        "contentType": "application/x-ndjson",
+        "headers": {
+          "Cache-Control": "no-cache, no-store",
+          "X-Accel-Buffering": "no — отключение буферизации прокси."
+        }
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "query": "Fullmetal Alchemist Brotherhood",
+          "mediaType": "tv",
+          "id": 31911,
+          "title": "Стальной алхимик: Братство",
+          "originalTitle": "鋼の錬金術師 FULLMETAL ALCHEMIST",
+          "englishTitle": "Fullmetal Alchemist: Brotherhood",
+          "year": "2009",
+          "forceSearch": false
+        }
+      }
+    }
+  },
+  "Continue.List": {
+    "tag": "Продолжение просмотра",
+    "summary": "Получить последние просмотры",
+    "description": "До 8 записей за последние 90 дней.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "TorrentContinueListResponse",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "items": [
+                {
+                  "mediaType": "tv",
+                  "tmdbId": 31911,
+                  "title": "Стальной алхимик: Братство",
+                  "fileIndex": "1",
+                  "progressSeconds": 120,
+                  "durationSeconds": 1440,
+                  "posterSrc": null,
+                  "backdropSrc": null,
+                  "stillSrc": null,
+                  "season": 1,
+                  "episode": 1,
+                  "audioName": null,
+                  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+                  "stream": null,
+                  "updatedAt": "2026-10-05T09:00:00+00:00"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "Continue.Get": {
+    "tag": "Продолжение просмотра",
+    "summary": "Получить позицию одного произведения",
+    "description": "Ключ: mediaType + tmdbId. Отсутствующая запись даёт 204 без тела (стандартный MVC formatter для Ok(null)).",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "TorrentContinueCursor",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "mediaType": "tv",
+              "tmdbId": 31911,
+              "title": "Стальной алхимик: Братство",
+              "fileIndex": "1",
+              "progressSeconds": 120,
+              "durationSeconds": 1440,
+              "posterSrc": null,
+              "backdropSrc": null,
+              "stillSrc": null,
+              "season": 1,
+              "episode": 1,
+              "audioName": null,
+              "infoHash": "0123456789abcdef0123456789abcdef01234567",
+              "stream": null,
+              "updatedAt": "2026-10-05T09:00:00+00:00"
+            }
+          }
+        }
+      },
+      "204": {
+        "description": "Запись отсутствует; тело пустое."
+      }
+    },
+    "parameters": {
+      "mediaType": {
+        "description": "Тип TMDB, обычно tv или movie.",
+        "example": "tv"
+      },
+      "tmdbId": {
+        "description": "TMDB ID.",
+        "example": 31911
+      }
+    }
+  },
+  "Continue.Upsert": {
+    "tag": "Продолжение просмотра",
+    "summary": "Сохранить позицию воспроизведения",
+    "description": "tmdbId>0 и непустой fileIndex обязательны. progressSeconds/durationSeconds — секунды. Запись обновляется по mediaType + tmdbId. Данные общие для этого сервиса, user ID в контракте отсутствует.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "ApiSuccess",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "mediaType": "tv",
+          "tmdbId": 31911,
+          "title": "Стальной алхимик: Братство",
+          "fileIndex": "1",
+          "progressSeconds": 120,
+          "durationSeconds": 1440,
+          "posterSrc": null,
+          "backdropSrc": null,
+          "stillSrc": null,
+          "season": 1,
+          "episode": 1,
+          "audioName": null,
+          "infoHash": "0123456789abcdef0123456789abcdef01234567",
+          "stream": null,
+          "updatedAt": "2026-10-05T09:00:00+00:00"
+        }
+      }
+    }
+  },
+  "Continue.Remove": {
+    "tag": "Продолжение просмотра",
+    "summary": "Удалить позицию воспроизведения",
+    "description": "Удаляет одну запись; tmdbId>0.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "ApiSuccess",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "mediaType": "tv",
+          "tmdbId": 31911
+        }
+      }
+    }
+  },
+  "Overrides.Get": {
+    "tag": "Переопределения",
+    "summary": "Получить карты сезонов и файлов",
+    "description": "При отсутствии данных возвращает 200 с пустыми seasonMap и fileMap, не 404. Числовые сезоны — строковые ключи; \"_\" — файлы без сезона.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "TorrentOverrideMap",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "hash": "0123456789abcdef0123456789abcdef01234567",
+              "seasonMap": {},
+              "fileMap": {}
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  },
+  "Overrides.UpsertSeason": {
+    "tag": "Переопределения",
+    "summary": "Задать сопоставление сезона",
+    "description": "sourceSeason=null соответствует ключу \"_\". targetSeason — целевой сезон, offset прибавляется к распознанному номеру эпизода. Возвращает обновлённую карту всех сезонов.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "SeasonOverrideResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true,
+              "seasonMap": {
+                "_": {
+                  "season": 1,
+                  "offset": 0
+                }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "sourceSeason": null,
+          "targetSeason": 1,
+          "offset": 0
+        }
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  },
+  "Overrides.RemoveSeason": {
+    "tag": "Переопределения",
+    "summary": "Удалить сопоставление сезона",
+    "description": "sourceSeason передаётся в query, не JSON. Без параметра удаляется ключ \"_\".",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "SeasonOverrideResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true,
+              "seasonMap": {}
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "sourceSeason": {
+        "description": "Исходный сезон; отсутствие параметра означает файлы без сезона.",
+        "example": 1
+      }
+    }
+  },
+  "Overrides.UpsertFile": {
+    "tag": "Переопределения",
+    "summary": "Задать сопоставление файла",
+    "description": "Предпочтительно armTarget с непустыми workId/entryId/episodeId из Gateway АРМ. Legacy: season и episode>=0. mode=pin привязывает один файл; anchor задаёт начало последовательности. scopeFileIds допустим только для anchor: 1–2000 уникальных непустых ID, включая fileId. API сохраняет карту; применение переопределений выполняет клиент/плагин. Принадлежность IDs графу здесь не проверяется.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "FileOverrideResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true,
+              "fileMap": {
+                "1": {
+                  "season": null,
+                  "episode": null,
+                  "mode": "pin",
+                  "armTarget": {
+                    "workId": "1341b41c-2b09-4745-8413-611a6393fcf5",
+                    "entryId": "c5b72b5a-ff16-5618-a294-25a146954916",
+                    "episodeId": "1d5695ec-d28c-5f50-804c-1c67fc784783"
+                  },
+                  "scopeFileIds": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "fileId": "1",
+          "mode": "pin",
+          "armTarget": {
+            "workId": "1341b41c-2b09-4745-8413-611a6393fcf5",
+            "entryId": "c5b72b5a-ff16-5618-a294-25a146954916",
+            "episodeId": "1d5695ec-d28c-5f50-804c-1c67fc784783"
+          }
+        }
+      },
+      "anchor": {
+        "summary": "Якорь для выбранных файлов; реальные IDs из снимка АРМ",
+        "value": {
+          "fileId": "1",
+          "mode": "anchor",
+          "armTarget": {
+            "workId": "1341b41c-2b09-4745-8413-611a6393fcf5",
+            "entryId": "c5b72b5a-ff16-5618-a294-25a146954916",
+            "episodeId": "1d5695ec-d28c-5f50-804c-1c67fc784783"
+          },
+          "scopeFileIds": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      },
+      "legacy": {
+        "summary": "Старое числовое сопоставление",
+        "value": {
+          "fileId": "1",
+          "season": 1,
+          "episode": 1,
+          "mode": "pin"
+        }
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  },
+  "Overrides.RemoveFile": {
+    "tag": "Переопределения",
+    "summary": "Удалить сопоставление файла",
+    "description": "fileId передаётся в query, не JSON; после удаления клиент возвращается к автоматическому сопоставлению.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "FileOverrideResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true,
+              "fileMap": {}
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "fileId": {
+        "description": "ID файла внутри торрента.",
+        "example": "1"
+      }
+    }
+  },
+  "Overrides.Replace": {
+    "tag": "Переопределения",
+    "summary": "Заменить карту сезонов целиком",
+    "description": "Обновляется только seasonMap. fileMap из тела игнорируется; пустая seasonMap очищает сезоны, но сохраняет переопределения файлов. hash в URL является ключом, hash из тела не используется.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "ApiSuccess",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "success": true
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Ошибка проверки входа: текст. Ошибки JSON/привязки параметров возвращают ValidationProblemDetails.",
+        "type": "string",
+        "contentType": "text/plain"
+      }
+    },
+    "requestExamples": {
+      "example": {
+        "summary": "Пример",
+        "value": {
+          "hash": "0123456789abcdef0123456789abcdef01234567",
+          "seasonMap": {}
+        }
+      }
+    },
+    "parameters": {
+      "hash": {
+        "description": "Ключ торрента, обычно 40 символов infohash; приводится к нижнему регистру. Формат 40 hex проверяется лишь при добавлении сводки к результатам поиска.",
+        "example": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  },
+  "Subscribe.Subscribe": {
+    "tag": "Подписки",
+    "summary": "Начать отслеживать сериал",
+    "description": "Все три аргумента передаются в query. result — результат добавления.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "SubscriptionResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "result": true
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "tmdb": {
+        "description": "TMDB ID сериала.",
+        "example": 31911
+      },
+      "media": {
+        "description": "Название произведения (не mediaType).",
+        "example": "Стальной алхимик: Братство"
+      },
+      "uid": {
+        "description": "Ключ пользователя в SearchEngine; не токен авторизации.",
+        "example": "demo-user"
+      }
+    }
+  },
+  "Subscribe.UnSubscribe": {
+    "tag": "Подписки",
+    "summary": "Прекратить отслеживать сериал",
+    "description": "Все аргументы передаются в query. result — результат удаления.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "SubscriptionResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "result": true
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "tmdb": {
+        "description": "TMDB ID сериала.",
+        "example": 31911
+      },
+      "media": {
+        "description": "Название произведения (не mediaType).",
+        "example": "Стальной алхимик: Братство"
+      },
+      "uid": {
+        "description": "Ключ пользователя в SearchEngine; не токен авторизации.",
+        "example": "demo-user"
+      }
+    }
+  },
+  "Subscribe.CheckSubscribe": {
+    "tag": "Подписки",
+    "summary": "Проверить подписку",
+    "description": "Все аргументы передаются в query. result=true — подписка есть.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "SubscriptionResult",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": {
+              "result": true
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "tmdb": {
+        "description": "TMDB ID сериала.",
+        "example": 31911
+      },
+      "media": {
+        "description": "Название произведения (не mediaType).",
+        "example": "Стальной алхимик: Братство"
+      },
+      "uid": {
+        "description": "Ключ пользователя в SearchEngine; не токен авторизации.",
+        "example": "demo-user"
+      }
+    }
+  },
+  "Subscribe.GetSubscribes": {
+    "tag": "Подписки",
+    "summary": "Получить подписки пользователя",
+    "description": "Ответ — массив; у этого исторического контракта snake_case поля tmdb_id и last_refresh_time. media — название.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ.",
+        "type": "UserSubscriptionItem[]",
+        "examples": {
+          "example": {
+            "summary": "Пример",
+            "value": [
+              {
+                "tmdb_id": 31911,
+                "media": "Стальной алхимик: Братство",
+                "last_refresh_time": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    "parameters": {
+      "uid": {
+        "description": "Ключ пользователя в SearchEngine; не токен авторизации.",
+        "example": "demo-user"
+      }
+    }
+  },
+  "Health.GetHealth": {
+    "tag": "Сервис",
+    "summary": "Проверить доступность",
+    "description": "200 с пустым телом; не проверяет БД и трекеры.",
+    "responses": {
+      "200": {
+        "description": "Успешный ответ."
+      }
+    }
+  }
+}

@@ -1,0 +1,351 @@
+{
+  "TorrentSearchRequest": {
+    "description": "Параметры поиска торрентов.",
+    "properties": {
+      "query": {
+        "description": "Поисковая строка."
+      },
+      "mediaType": {
+        "description": "tv — сериал; остальные значения обрабатываются как фильм."
+      },
+      "englishTitle": {
+        "description": "Английское название; fallback для originalTitle."
+      },
+      "genres": {
+        "description": "Принимается для совместимости, сейчас не участвует в поиске."
+      },
+      "id": {
+        "description": "TMDB ID (не workId АРМ)."
+      },
+      "originalTitle": {
+        "description": "Оригинальное название; приоритетнее englishTitle."
+      },
+      "title": {
+        "description": "Отображаемое название; если null, берётся query."
+      },
+      "year": {
+        "description": "Год строкой, например \"2009\"; непарсируемое значение становится 0."
+      },
+      "forceSearch": {
+        "description": "Признак принудительного поиска, по умолчанию false."
+      },
+      "workId": {
+        "description": "UUID АРМ; сейчас игнорируется поисковым сервисом."
+      }
+    }
+  },
+  "TorrentSearchResponse": {
+    "description": "Единый ответ поиска.",
+    "properties": {
+      "results": {
+        "description": "Массив торрентов, возможно пустой."
+      }
+    }
+  },
+  "TorrentSearchStreamEvent": {
+    "description": "Одна строка NDJSON потока.",
+    "properties": {
+      "type": {
+        "description": "batch или done."
+      },
+      "source": {
+        "description": "Источник batch; у done null."
+      },
+      "results": {
+        "description": "Непустой массив для batch; у done null."
+      }
+    }
+  },
+  "TorrentSearchResult": {
+    "description": "Найденный торрент.",
+    "properties": {
+      "id": {
+        "description": "Infohash, иначе URL, иначе сгенерированный ID; не всегда 40 hex."
+      },
+      "title": {
+        "description": "Название раздачи."
+      },
+      "tracker": {
+        "description": "Название источника."
+      },
+      "sizeBytes": {
+        "description": "Размер в байтах."
+      },
+      "sizeLabel": {
+        "description": "Не заполняется текущим контроллером (null)."
+      },
+      "seeders": {
+        "description": "Количество сидов."
+      },
+      "leechers": {
+        "description": "Количество личей."
+      },
+      "publishDate": {
+        "description": "Строка даты публикации; yyyy-MM-ddTHH:mm:ssZ, если источник дал время."
+      },
+      "magnetUri": {
+        "description": "Magnet URI либо null."
+      },
+      "link": {
+        "description": "URL раздачи либо null."
+      },
+      "tags": {
+        "description": "Распознанные quality/source/codec/year/voice."
+      },
+      "viewed": {
+        "description": "Не заполняется текущим контроллером (null)."
+      },
+      "override": {
+        "description": "Сводка сохранённых переопределений для валидного 40-hex infohash; иначе null."
+      }
+    }
+  },
+  "TorrentTag": {
+    "description": "Тег торрента.",
+    "properties": {
+      "kind": {
+        "description": "quality, source, codec, year или voice."
+      },
+      "value": {
+        "description": "Распознанное значение."
+      }
+    }
+  },
+  "TorrentOverrideSummary": {
+    "description": "Сводка переопределений.",
+    "properties": {
+      "seasonCount": {
+        "description": "Число записей seasonMap."
+      },
+      "fileCount": {
+        "description": "Число записей fileMap."
+      },
+      "primarySource": {
+        "description": "Основной источник сопоставления либо null."
+      },
+      "primarySeason": {
+        "description": "Основной целевой сезон либо null."
+      },
+      "primaryOffset": {
+        "description": "Основное смещение эпизодов либо null."
+      }
+    }
+  },
+  "TorrentOverrideMap": {
+    "description": "Карты переопределений одного торрента.",
+    "properties": {
+      "hash": {
+        "description": "Нормализованный ключ торрента."
+      },
+      "seasonMap": {
+        "description": "Словарь: исходный сезон строкой или \"_\" → сезон/смещение."
+      },
+      "fileMap": {
+        "description": "Словарь fileId → pin/anchor. При Replace это поле игнорируется."
+      }
+    }
+  },
+  "SeasonOverrideEntry": {
+    "description": "Числовое сопоставление сезона.",
+    "properties": {
+      "season": {
+        "description": "Целевой сезон."
+      },
+      "offset": {
+        "description": "Смещение, прибавляемое к распознанному номеру эпизода."
+      }
+    }
+  },
+  "FileOverrideEntry": {
+    "description": "Сохранённое сопоставление файла.",
+    "properties": {
+      "season": {
+        "description": "Legacy целевой сезон; при armTarget может быть null."
+      },
+      "episode": {
+        "description": "Legacy номер эпизода, допускает decimal."
+      },
+      "mode": {
+        "description": "pin — только файл; anchor — начало последовательности."
+      },
+      "armTarget": {
+        "description": "Каноническая цель из Gateway АРМ; предпочтительна legacy номерам."
+      },
+      "scopeFileIds": {
+        "description": "Область anchor: список fileId, включая файл-якорь; null — без явно сохранённой области."
+      }
+    }
+  },
+  "ArmEpisodeOverrideTarget": {
+    "description": "Канонические идентификаторы из графа Gateway.",
+    "properties": {
+      "workId": {
+        "description": "UUID произведения."
+      },
+      "entryId": {
+        "description": "UUID группы из layout.groups[].id."
+      },
+      "episodeId": {
+        "description": "UUID эпизода из layout.groups[].episodes[].id."
+      }
+    }
+  },
+  "UpsertSeasonOverrideRequest": {
+    "description": "Переопределение одного исходного сезона.",
+    "properties": {
+      "sourceSeason": {
+        "description": "null — файлы без сезона (ключ \"_\")."
+      },
+      "targetSeason": {
+        "description": "Целевой сезон."
+      },
+      "offset": {
+        "description": "Прибавляемое смещение номера эпизода."
+      }
+    }
+  },
+  "UpsertFileOverrideRequest": {
+    "description": "Переопределение одного файла.",
+    "properties": {
+      "fileId": {
+        "description": "Непустой ID файла в релизе."
+      },
+      "season": {
+        "description": "Legacy сезон >=0; обязателен без armTarget."
+      },
+      "episode": {
+        "description": "Legacy эпизод >=0; обязателен без armTarget."
+      },
+      "mode": {
+        "description": "pin или anchor (default anchor)."
+      },
+      "armTarget": {
+        "description": "Все три UUID непустые; принадлежность графу проверяет клиент."
+      },
+      "scopeFileIds": {
+        "description": "Только anchor: 1–2000 уникальных непустых ID с включённым fileId."
+      }
+    }
+  },
+  "TorrentContinueCursor": {
+    "description": "Позиция продолжения просмотра, общая для SearchEngine.",
+    "properties": {
+      "mediaType": {
+        "description": "Тип произведения, обычно tv/movie."
+      },
+      "tmdbId": {
+        "description": "Положительный TMDB ID."
+      },
+      "title": {
+        "description": "Название."
+      },
+      "fileIndex": {
+        "description": "Непустой ID/индекс файла, строка."
+      },
+      "progressSeconds": {
+        "description": "Прошедшее время в секундах."
+      },
+      "durationSeconds": {
+        "description": "Длительность в секундах."
+      },
+      "posterSrc": {
+        "description": "URL постера либо null."
+      },
+      "backdropSrc": {
+        "description": "URL фона либо null."
+      },
+      "stillSrc": {
+        "description": "URL кадра либо null."
+      },
+      "season": {
+        "description": "Номер сезона либо null."
+      },
+      "episode": {
+        "description": "Номер эпизода либо null."
+      },
+      "audioName": {
+        "description": "Название аудиодорожки либо null."
+      },
+      "infoHash": {
+        "description": "Infohash торрента либо null."
+      },
+      "stream": {
+        "description": "Произвольный JSON descriptor источника; не храните здесь учётные данные."
+      },
+      "updatedAt": {
+        "description": "UTC время обновления; может заполняться хранилищем."
+      }
+    }
+  },
+  "TorrentContinueListResponse": {
+    "description": "Список продолжения просмотра.",
+    "properties": {
+      "items": {
+        "description": "До 8 свежих записей за 90 дней."
+      }
+    }
+  },
+  "TorrentContinueRemoveRequest": {
+    "description": "Удаление позиции.",
+    "properties": {
+      "mediaType": {
+        "description": "Тип произведения."
+      },
+      "tmdbId": {
+        "description": "Положительный TMDB ID."
+      }
+    }
+  },
+  "UserSubscriptionItem": {
+    "description": "Исторический контракт списка подписок.",
+    "properties": {
+      "tmdb_id": {
+        "description": "TMDB ID сериала."
+      },
+      "media": {
+        "description": "Название сериала."
+      },
+      "last_refresh_time": {
+        "description": "Время последнего обновления либо null."
+      }
+    }
+  },
+  "ApiSuccess": {
+    "description": "Подтверждение изменения.",
+    "properties": {
+      "success": {
+        "description": "true при успешном выполнении."
+      }
+    }
+  },
+  "SubscriptionResult": {
+    "description": "Результат операции подписки.",
+    "properties": {
+      "result": {
+        "description": "true/false, смысл зависит от операции."
+      }
+    }
+  },
+  "SeasonOverrideResult": {
+    "description": "Подтверждение и вся текущая карта сезонов.",
+    "properties": {
+      "success": {
+        "description": "Подтверждение."
+      },
+      "seasonMap": {
+        "description": "Обновлённая карта сезонов."
+      }
+    }
+  },
+  "FileOverrideResult": {
+    "description": "Подтверждение и вся текущая карта файлов.",
+    "properties": {
+      "success": {
+        "description": "Подтверждение."
+      },
+      "fileMap": {
+        "description": "Обновлённая карта файлов."
+      }
+    }
+  }
+}

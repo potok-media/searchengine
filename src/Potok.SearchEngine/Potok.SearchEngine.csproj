@@ -22,4 +22,9 @@
       <ProjectReference Include="..\Potok.SearchEngine.Infrastructure\Potok.SearchEngine.Infrastructure.csproj" />
     </ItemGroup>
 
+    <!-- operations.json / schemas.json ship inside the assembly; ApiDocumentation reads them as manifest resources -->
+    <ItemGroup>
+      <EmbeddedResource Include="Documentation\*.json" />
+    </ItemGroup>
+
 </Project>
