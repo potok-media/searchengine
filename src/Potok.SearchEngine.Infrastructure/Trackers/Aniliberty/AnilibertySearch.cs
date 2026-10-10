@@ -26,7 +26,7 @@ public class AnilibertySearch : BaseTrackerSearch
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
     }
 
-    private const string ParserVersion = "aniliberty/2026-09-22";
+    private const string ParserVersion = "aniliberty/2026-10-07";
     private const int MaxConcurrentReleaseRequests = 4;
 
     private static readonly HashSet<string> PlayableAnimeTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -235,8 +235,9 @@ public class AnilibertySearch : BaseTrackerSearch
         var createdAt = ReadDate(element, "created_at");
         var updatedAt = ReadDate(element, "updated_at");
 
-        var observed = TorrentObservedFields.InfoHash | TorrentObservedFields.Magnet |
+        var observed = TorrentObservedFields.InfoHash | TorrentObservedFields.Magnet | TorrentObservedFields.Title |
                        TorrentObservedFields.Types;
+        if (createdAt is not null) observed |= TorrentObservedFields.PublishDate;
         if (hasSize) observed |= TorrentObservedFields.Size;
         if (hasSeeders) observed |= TorrentObservedFields.Seeders;
         if (hasLeechers) observed |= TorrentObservedFields.Leechers;
